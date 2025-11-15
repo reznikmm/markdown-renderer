@@ -9,7 +9,7 @@ licenses = "Apache-2.0 WITH LLVM-exception"
 website = ""
 tags = []
 
-executables = ["testsuite"]
+executables = ["testsuite-driver"]
 
 [build-switches]
 development.Ada_Version = "Ada2022"

@@ -17,8 +17,12 @@ development.contracts = "Yes"
 development.style_checks = ["-gnaty", "-gnaty-B"]
 "*".debug_info = "Yes"
 
+[[actions]]
+type = "test"
+command = ["alr", "-C", "testsuite", "run"]
+
 [[depends-on]]
-markdown = "^25.0.0"
+markdown = "^26.0.0"
 
 [[depends-on]]
 gtkada = "^25.0.1"
