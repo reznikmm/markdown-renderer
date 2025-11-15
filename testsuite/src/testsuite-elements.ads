@@ -11,10 +11,10 @@ package Testsuite.Elements is
 
 private
 
-   procedure Empty
-     (T : in out Trendy_Test.Operation'Class);
+   procedure Empty (T : in out Trendy_Test.Operation'Class);
+   procedure Header (T : in out Trendy_Test.Operation'Class);
 
    Tests : constant Trendy_Test.Test_Group :=
-    [Empty'Access];
+    [Empty'Access, Header'Access];
 
 end Testsuite.Elements;

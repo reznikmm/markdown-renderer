@@ -4,6 +4,7 @@
 ----------------------------------------------------------------
 
 with Markdown.Documents;
+with Markdown.Styles;
 
 with Cairo;
 
@@ -12,10 +13,25 @@ package Markdown.Renderer is
    type Renderer is tagged limited private;
 
    procedure Render
-     (Self     : in out Renderer'Class;
+     (Self     : Renderer'Class;
       Context  : Cairo.Cairo_Context;
       Document : Markdown.Documents.Document'Class);
 
+   procedure Set_Code_Span_Style
+     (Self  : in out Renderer'Class;
+      Style : Markdown.Styles.Style);
+
+   function Code_Span_Style
+     (Self : Renderer'Class) return Markdown.Styles.Style;
+
 private
-   type Renderer is tagged limited null record;
+
+   type Renderer is tagged limited record
+      Code_Span_Style : Markdown.Styles.Style;
+   end record;
+
+   function Code_Span_Style
+     (Self : Renderer'Class) return Markdown.Styles.Style is
+       (Self.Code_Span_Style);
+
 end Markdown.Renderer;

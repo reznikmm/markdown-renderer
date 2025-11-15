@@ -117,11 +117,18 @@ package body Testsuite is
    function Create_Cairo_Context
      (Width, Height : Positive) return Cairo.Cairo_Context is
    begin
-      return Cairo.Create
-        (Cairo.Image_Surface.Create
-          (Format => Cairo.Image_Surface.Cairo_Format_RGB24,
-           Width  => Glib.Gint (Width),
-           Height => Glib.Gint (Height)));
+      return Result : Cairo.Cairo_Context :=
+        Cairo.Create
+          (Cairo.Image_Surface.Create
+            (Format => Cairo.Image_Surface.Cairo_Format_RGB24,
+             Width  => Glib.Gint (Width),
+             Height => Glib.Gint (Height)))
+      do
+         Cairo.Save (Result);
+         Cairo.Set_Source_Rgb (Result, 1.0, 1.0, 1.0);
+         Cairo.Paint (Result);
+         Cairo.Restore (Result);
+      end return;
    end Create_Cairo_Context;
 
 end Testsuite;
