@@ -1,0 +1,21 @@
+name = "markdown_renderer"
+description = "Markdown rendered with Pango/Cairo backend"
+version = "0.1.0-dev"
+
+authors = ["Max Reznik"]
+maintainers = ["Max Reznik <reznikmm@gmail.com>"]
+maintainers-logins = ["reznikmm"]
+licenses = "Apache-2.0 WITH LLVM-exception"
+website = "https://github.com/reznikmm/markdown-renderer"
+tags = ["markdown", "pango", "gtk3"]
+
+project-files = ["gnat/markdown_renderer.gpr"]
+
+[build-switches]
+development.optimization = ["-O0"]
+development.contracts = "Yes"
+development.style_checks = ["-gnaty", "-gnaty-B"]
+"*".debug_info = "Yes"
+
+[[depends-on]]
+markdown = "^25.0.0"
