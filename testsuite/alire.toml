@@ -1,24 +1,31 @@
-name = "markdown_renderer"
-description = "Markdown rendered with Pango/Cairo backend"
+name = "testsuite"
+description = "testsuite for markdown-renderer"
 version = "0.1.0-dev"
 
 authors = ["Max Reznik"]
 maintainers = ["Max Reznik <reznikmm@gmail.com>"]
 maintainers-logins = ["reznikmm"]
 licenses = "Apache-2.0 WITH LLVM-exception"
-website = "https://github.com/reznikmm/markdown-renderer"
-tags = ["markdown", "pango", "gtk3"]
+website = ""
+tags = []
 
-project-files = ["gnat/markdown_renderer.gpr"]
+executables = ["testsuite"]
 
 [build-switches]
+development.Ada_Version = "Ada2022"
 development.optimization = ["-O0"]
 development.contracts = "Yes"
 development.style_checks = ["-gnaty", "-gnaty-B"]
 "*".debug_info = "Yes"
 
-[[depends-on]]
-markdown = "^25.0.0"
+[build-profiles]
+"*" = "development"
 
 [[depends-on]]
-gtkada = "^25.0.1"
+markdown_renderer = "*"
+
+[[pins]]
+markdown_renderer = { path='..' }
+
+[[depends-on]]
+trendy_test = "~0.0.4"

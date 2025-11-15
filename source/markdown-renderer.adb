@@ -3,19 +3,18 @@
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 ----------------------------------------------------------------
 
-with Markdown.Documents;
+package body Markdown.Renderer is
 
-with Cairo;
-
-package Markdown.Renderer is
-
-   type Renderer is tagged limited private;
+   ------------
+   -- Render --
+   ------------
 
    procedure Render
      (Self     : in out Renderer'Class;
       Context  : Cairo.Cairo_Context;
-      Document : Markdown.Documents.Document'Class);
+      Document : Markdown.Documents.Document'Class) is
+   begin
+      null;
+   end Render;
 
-private
-   type Renderer is tagged limited null record;
 end Markdown.Renderer;
