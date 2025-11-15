@@ -6,6 +6,8 @@
 with Markdown.Documents;
 with Markdown.Renderer;
 with Markdown.Parsers.Enable_GFM;
+with Markdown.Styles;
+
 with VSS.String_Vectors;
 
 package body Testsuite.Elements is
@@ -13,6 +15,8 @@ package body Testsuite.Elements is
    procedure Parse
      (Parser : in out Markdown.Parsers.Markdown_Parser;
       Source : VSS.String_Vectors.Virtual_String_Vector);
+
+   procedure Set_Styles (Renderer : in out Markdown.Renderer.Renderer);
 
    -----------
    -- Empty --
@@ -52,7 +56,8 @@ package body Testsuite.Elements is
          Parser   : Markdown.Parsers.Markdown_Parser;
          Renderer : Markdown.Renderer.Renderer;
       begin
-         Parse (Parser, ["# Header 1"]);
+         Set_Styles (Renderer);
+         Parse (Parser, ["# `Header 1`"]);
 
          Renderer.Render
            (Context  => Context,
@@ -75,5 +80,19 @@ package body Testsuite.Elements is
          Parser.Parse_Line (Line);
       end loop;
    end Parse;
+
+   ----------------
+   -- Set_Styles --
+   ----------------
+
+   procedure Set_Styles (Renderer : in out Markdown.Renderer.Renderer) is
+   begin
+      declare
+         Style : Markdown.Styles.Style;
+      begin
+         Style.Set_Font_Family ("Courier New");
+         Renderer.Set_Code_Span_Style (Style);
+      end;
+   end Set_Styles;
 
 end Testsuite.Elements;
