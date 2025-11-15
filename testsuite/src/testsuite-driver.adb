@@ -12,7 +12,7 @@ with Glib.Application;
 procedure Testsuite.Driver is
    --  use type Trendy_Test.Test_Group;
 
-   App : Glib.Application.Gapplication :=
+   App : constant Glib.Application.Gapplication :=
      Glib.Application.Gapplication_New
      (Application_Id => "org.markdown.renderer.testsuite",
       Flags => Glib.Application.G_Application_Flags_None);
@@ -24,6 +24,7 @@ procedure Testsuite.Driver is
    ---------
 
    procedure Run (Self : access Glib.Application.Gapplication_Record'Class) is
+      pragma Unreferenced (Self);
       All_Tests : constant Trendy_Test.Test_Group :=
         Testsuite.Elements.Tests;
    begin

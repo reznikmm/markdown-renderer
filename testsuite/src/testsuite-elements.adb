@@ -15,7 +15,20 @@ package body Testsuite.Elements is
    procedure Empty (T : in out Trendy_Test.Operation'Class) is
    begin
       T.Register;
-      T.Assert (True);
+
+      declare
+         Context : constant Cairo.Cairo_Context :=
+          Testsuite.Create_Cairo_Context (800, 600);
+
+         Document : Markdown.Documents.Document;
+
+         Renderer : Markdown.Renderer.Renderer;
+      begin
+         Renderer.Render
+           (Context  => Context,
+            Document => Document);
+         Assert (T, Context, "empty.png");
+      end;
    end Empty;
 
 end Testsuite.Elements;

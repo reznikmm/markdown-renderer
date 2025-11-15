@@ -29,3 +29,6 @@ markdown_renderer = { path='..' }
 
 [[depends-on]]
 trendy_test = "~0.0.4"
+
+[[pins]]
+markdown = { url='https://github.com/AdaCore/markdown' }
