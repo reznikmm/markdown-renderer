@@ -48,8 +48,11 @@ package body Markdown.Renderer is
 
    procedure Assign_Markup
      (Self   : Renderer'Class;
+      Style  : Markdown.Styles.Style;
       Layout : Pango.Layout.Pango_Layout;
       Vector : Markdown.Inlines.Inline_Vector);
+   --  Assign text and attributes to Pango layout based on inline vector.
+   --  Use enclosing block Style for default text attributes.
 
    -------------------
    -- Assign_Markup --
@@ -57,9 +60,12 @@ package body Markdown.Renderer is
 
    procedure Assign_Markup
      (Self   : Renderer'Class;
+      Style  : Markdown.Styles.Style;
       Layout : Pango.Layout.Pango_Layout;
       Vector : Markdown.Inlines.Inline_Vector)
    is
+      use type VSS.Unicode.UTF8_Code_Unit_Offset;
+
       function Attr_Style_New
         (Style : Pango.Enums.Style) return Pango.Attributes.Pango_Attribute;
       pragma Import (C, Attr_Style_New, "pango_attr_style_new");
@@ -114,7 +120,10 @@ package body Markdown.Renderer is
          From : VSS.Unicode.UTF8_Code_Unit_Offset;
          To   : VSS.Unicode.UTF8_Code_Unit_Offset)
       is
-         use type Glib.Guint;
+
+         function To_Guint
+           (Value : VSS.Unicode.UTF8_Code_Unit_Offset) return Glib.Guint is
+             (if Value = -1 then Glib.Guint'Last else Glib.Guint (Value));
 
          type Internal is record
             Klass : System.Address;
@@ -125,8 +134,8 @@ package body Markdown.Renderer is
          Object : Internal
            with Import, Address => Pango.Attributes.Convert (Attr);
       begin
-         Object.Start_Index := Glib.Guint (From);
-         Object.End_Index := Glib.Guint (To) + 1;
+         Object.Start_Index := To_Guint (From);
+         Object.End_Index := To_Guint (To);
       end Set_Span;
 
       ----------
@@ -161,7 +170,7 @@ package body Markdown.Renderer is
 
                      begin
                         Text.Append (Item.Code_Span);
-                        To := Text.At_Last_Character.Last_UTF8_Offset;
+                        To := Text.At_Last_Character.Last_UTF8_Offset + 1;
 
                         Apply_Style
                           (List,
@@ -182,7 +191,7 @@ package body Markdown.Renderer is
                      begin
                         Markdown.Inlines.Inline_Vectors.Next (Cursor);
                         Walk (Cursor, Text, List);
-                        To := Text.At_Last_Character.Last_UTF8_Offset;
+                        To := Text.At_Last_Character.Last_UTF8_Offset + 1;
                         Set_Span (Attr, From, To);
                         List.Insert (Attr);
                      end;
@@ -231,6 +240,9 @@ package body Markdown.Renderer is
         Pango.Attributes.Pango_Attr_List_New;
 
    begin
+      --  Apply_Style (List, Self.Default_Style, 0, -1);
+      Apply_Style (List, Style, 0, -1);
+
       Walk (Cursor, Text, List);
 
       Layout.Set_Text (VSS.Strings.Conversions.To_UTF_8_String (Text));
@@ -288,7 +300,7 @@ package body Markdown.Renderer is
             Text : constant Markdown.Inlines.Inline_Vector :=
               Block.To_ATX_Heading.Text;
          begin
-            Self.Assign_Markup (Layout, Text);
+            Self.Assign_Markup (Self.Default_Style, Layout, Text);
 
             Cairo.Move_To
               (Context,
@@ -326,5 +338,16 @@ package body Markdown.Renderer is
    begin
       Self.Code_Span_Style := Style;
    end Set_Code_Span_Style;
+
+   -----------------------
+   -- Set_Default_Style --
+   -----------------------
+
+   procedure Set_Default_Style
+     (Self  : in out Renderer'Class;
+      Style : Markdown.Styles.Style) is
+   begin
+      Self.Default_Style := Style;
+   end Set_Default_Style;
 
 end Markdown.Renderer;

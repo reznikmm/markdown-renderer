@@ -57,7 +57,7 @@ package body Testsuite.Elements is
          Renderer : Markdown.Renderer.Renderer;
       begin
          Set_Styles (Renderer);
-         Parse (Parser, ["# `Header 1`"]);
+         Parse (Parser, ["# Header `Code`"]);
 
          Renderer.Render
            (Context  => Context,
@@ -90,7 +90,14 @@ package body Testsuite.Elements is
       declare
          Style : Markdown.Styles.Style;
       begin
-         Style.Set_Font_Family ("Courier New");
+         Style.Set_Font_Family ("Serif");
+         Renderer.Set_Default_Style (Style);
+      end;
+
+      declare
+         Style : Markdown.Styles.Style;
+      begin
+         Style.Set_Font_Family ("Ubuntu");
          Renderer.Set_Code_Span_Style (Style);
       end;
    end Set_Styles;
