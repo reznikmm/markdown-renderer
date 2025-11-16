@@ -24,8 +24,11 @@ with VSS.Unicode;
 package body Markdown.Renderer is
 
    type Block_Offset is record
-      Top_Margin    : Natural := 0;
-      Left_Margin   : Natural := 0;
+      Width       : Positive;
+      Height      : Positive;
+      Offset_X    : Natural;
+      Offset_Y    : Natural;
+      Prev_Margin : Natural := 0;
    end record;
 
    function Create_Layout
@@ -186,13 +189,13 @@ package body Markdown.Renderer is
 
                      begin
                         Text.Append (Item.Code_Span);
-                        To := Text.At_Last_Character.Last_UTF8_Offset + 1;
+                        To := Text.At_Last_Character.Last_UTF8_Offset;
 
                         Apply_Style
                           (List,
                            Self.Code_Span_Style,
                            From,
-                           To);
+                           To + 1);
                      end;
 
                   when Markdown.Inlines.Start_Emphasis  =>
@@ -207,8 +210,8 @@ package body Markdown.Renderer is
                      begin
                         Markdown.Inlines.Inline_Vectors.Next (Cursor);
                         Walk (Cursor, Text, List);
-                        To := Text.At_Last_Character.Last_UTF8_Offset + 1;
-                        Set_Span (Attr, From, To);
+                        To := Text.At_Last_Character.Last_UTF8_Offset;
+                        Set_Span (Attr, From, To + 1);
                         List.Insert (Attr);
                      end;
 
@@ -229,7 +232,7 @@ package body Markdown.Renderer is
                         Markdown.Inlines.Inline_Vectors.Next (Cursor);
                         Walk (Cursor, Text, List);
                         To := Text.At_Last_Character.Last_UTF8_Offset;
-                        Set_Span (Attr, From, To);
+                        Set_Span (Attr, From, To + 1);
                         List.Insert (Attr);
                      end;
 
@@ -256,7 +259,7 @@ package body Markdown.Renderer is
         Pango.Attributes.Pango_Attr_List_New;
 
    begin
-      --  Apply_Style (List, Self.Default_Style, 0, -1);
+      Apply_Style (List, Self.Default_Style, 0, -1);
       Apply_Style (List, Style, 0, -1);
 
       Walk (Cursor, Text, List);
@@ -289,9 +292,18 @@ package body Markdown.Renderer is
    procedure Render
      (Self     : Renderer'Class;
       Context  : Cairo.Cairo_Context;
+      Width    : Positive;
+      Height   : Positive;
       Document : Markdown.Documents.Document'Class)
    is
-      Offset : Block_Offset := (10, 300);
+      Style : Markdown.Styles.Style := Self.Default_Style;
+
+      Offset : Block_Offset :=
+        (Width       => Width,
+         Height      => Height,
+         Offset_X    => Style.Left_Margin,
+         Offset_Y    => Style.Top_Margin,
+         Prev_Margin => 0);
    begin
       Self.Render_Blocks (Context, Document, False, Offset);
    end Render;
@@ -316,18 +328,38 @@ package body Markdown.Renderer is
             Heading : Markdown.Blocks.ATX_Headings.ATX_Heading renames
               Block.To_ATX_Heading;
 
+            Style : constant Markdown.Styles.Style :=
+              Self.Heading_Styles (Heading.Level);
+
             Text : constant Markdown.Inlines.Inline_Vector :=
               Heading.Text;
+
+            Width : constant Positive :=
+              Positive'Max
+               (50,
+                Offset.Width - Offset.Offset_X -
+                  Style.Left_Margin - Style.Right_Margin);
+
+            Ignore, Height : Glib.Gint;
          begin
-            Self.Assign_Markup
-              (Self.Heading_Styles (Heading.Level), Layout, Text);
+            Offset.Offset_Y := Offset.Offset_Y +
+              Natural'Max (Style.Top_Margin, Offset.Prev_Margin);
+
+            Layout.Set_Width (Glib.Gint (Pango.Enums.Pango_Scale * Width));
+            Self.Assign_Markup (Style, Layout, Text);
 
             Cairo.Move_To
               (Context,
-               Glib.Gdouble (Offset.Left_Margin),
-               Glib.Gdouble (Offset.Top_Margin));
+               Glib.Gdouble (Offset.Offset_X + Style.Left_Margin),
+               Glib.Gdouble (Offset.Offset_Y));
 
             Pango.Cairo.Show_Layout (Context, Layout);
+            Layout.Get_Size (Ignore, Height);
+
+            Offset.Offset_Y := Offset.Offset_Y +
+              Positive (Pango.Enums.To_Pixels (Height));
+
+            Offset.Prev_Margin := Style.Bottom_Margin;
          end;
       end if;
    end Render_Block;

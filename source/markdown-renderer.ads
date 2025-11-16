@@ -16,7 +16,11 @@ package Markdown.Renderer is
    procedure Render
      (Self     : Renderer'Class;
       Context  : Cairo.Cairo_Context;
+      Width    : Positive;
+      Height   : Positive;
       Document : Markdown.Documents.Document'Class);
+   --  Render the given Document into the given Cairo context.
+   --  Width and Height specify the size of the corresponding surface.
 
    procedure Set_Default_Style
      (Self  : in out Renderer'Class;

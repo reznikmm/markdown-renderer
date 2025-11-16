@@ -37,6 +37,8 @@ package body Testsuite.Elements is
       begin
          Renderer.Render
            (Context  => Context,
+            Width    => 800,
+            Height   => 600,
             Document => Document);
          Assert (T, Context, "empty.png");
       end;
@@ -58,10 +60,17 @@ package body Testsuite.Elements is
          Renderer : Markdown.Renderer.Renderer;
       begin
          Set_Styles (Renderer);
-         Parse (Parser, ["# Header `Code`"]);
+         Parse
+          (Parser,
+           ["# Header 1. `Code`",
+            "## Header 2. *Italic*",
+            "### Header 3. **Bold**",
+            "#### Header 4"]);
 
          Renderer.Render
            (Context  => Context,
+            Width    => 800,
+            Height   => 600,
             Document => Parser.Document);
          Assert (T, Context, "header.png");
       end;
@@ -87,6 +96,8 @@ package body Testsuite.Elements is
    ----------------
 
    procedure Set_Styles (Renderer : in out Markdown.Renderer.Renderer) is
+      pragma Warnings (Off, "static fixed-point value is not a multiple");
+
       Map : constant array (Markdown.Blocks.ATX_Headings.Heading_Level) of
         Markdown.Styles.Pango_Unit :=
          [1 => 32.0,
@@ -95,12 +106,15 @@ package body Testsuite.Elements is
           4 => 16.0,
           5 => 12.8,
           6 => 11.2];
+
+      pragma Warnings (On, "static fixed-point value is not a multiple");
    begin
       declare
          Style : Markdown.Styles.Style;
       begin
          Style.Set_Font_Family ("Sans-serif");
          Style.Set_Font_Size (16.0);
+         Style.Set_Margin (Top => 10, Right => 20, Bottom => 0, Left => 30);
          Renderer.Set_Default_Style (Style);
       end;
 
