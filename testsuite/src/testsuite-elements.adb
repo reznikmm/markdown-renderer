@@ -3,9 +3,10 @@
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 ----------------------------------------------------------------
 
+with Markdown.Blocks.ATX_Headings;
 with Markdown.Documents;
-with Markdown.Renderer;
 with Markdown.Parsers.Enable_GFM;
+with Markdown.Renderer;
 with Markdown.Styles;
 
 with VSS.String_Vectors;
@@ -86,18 +87,36 @@ package body Testsuite.Elements is
    ----------------
 
    procedure Set_Styles (Renderer : in out Markdown.Renderer.Renderer) is
+      Map : constant array (Markdown.Blocks.ATX_Headings.Heading_Level) of
+        Markdown.Styles.Pango_Unit :=
+         [1 => 32.0,
+          2 => 24.0,
+          3 => 19.2,
+          4 => 16.0,
+          5 => 12.8,
+          6 => 11.2];
    begin
       declare
          Style : Markdown.Styles.Style;
       begin
-         Style.Set_Font_Family ("Serif");
+         Style.Set_Font_Family ("Sans-serif");
+         Style.Set_Font_Size (16.0);
          Renderer.Set_Default_Style (Style);
       end;
+
+      for Level in Map'Range loop
+         declare
+            Style : Markdown.Styles.Style;
+         begin
+            Style.Set_Font_Size (Map (Level));
+            Renderer.Set_Heading_Style (Level, Style);
+         end;
+      end loop;
 
       declare
          Style : Markdown.Styles.Style;
       begin
-         Style.Set_Font_Family ("Ubuntu");
+         Style.Set_Font_Family ("Monospace");
          Renderer.Set_Code_Span_Style (Style);
       end;
    end Set_Styles;

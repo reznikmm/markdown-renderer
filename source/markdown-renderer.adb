@@ -8,7 +8,6 @@ with System;
 
 with Markdown.Block_Containers;
 with Markdown.Blocks;
-with Markdown.Blocks.ATX_Headings;
 with Markdown.Inlines;
 
 with Glib.Object;
@@ -72,6 +71,11 @@ package body Markdown.Renderer is
       --  Create a new font style attribute.
       --  "style": the style
 
+      function Attr_Size_New
+        (Size : Glib.Gint) return Pango.Attributes.Pango_Attribute;
+      pragma Import (C, Attr_Size_New, "pango_attr_size_new");
+      --  Create a new font-size attribute in fractional points.
+
       procedure Walk
         (Cursor : in out Markdown.Inlines.Inline_Vectors.Cursor;
          Text   : in out VSS.Strings.Virtual_String;
@@ -96,7 +100,9 @@ package body Markdown.Renderer is
         (List  : Pango.Attributes.Pango_Attr_List;
          Style : Markdown.Styles.Style;
          From  : VSS.Unicode.UTF8_Code_Unit_Offset;
-         To    : VSS.Unicode.UTF8_Code_Unit_Offset) is
+         To    : VSS.Unicode.UTF8_Code_Unit_Offset)
+      is
+         use type Markdown.Styles.Pango_Unit;
       begin
          if not Style.Font_Family.Is_Empty then
             declare
@@ -104,6 +110,16 @@ package body Markdown.Renderer is
                  Pango.Attributes.Attr_Family_New
                    (VSS.Strings.Conversions.To_UTF_8_String
                      (Style.Font_Family));
+            begin
+               Set_Span (Attr, From, To);
+               List.Insert (Attr);
+            end;
+         end if;
+
+         if Style.Font_Size /= 0.0 then
+            declare
+               Attr : constant Pango.Attributes.Pango_Attribute :=
+                 Attr_Size_New (Glib.Gint (Style.Font_Size * 1024.0));
             begin
                Set_Span (Attr, From, To);
                List.Insert (Attr);
@@ -297,10 +313,14 @@ package body Markdown.Renderer is
             Layout : constant Pango.Layout.Pango_Layout :=
               Create_Layout (Context);
 
+            Heading : Markdown.Blocks.ATX_Headings.ATX_Heading renames
+              Block.To_ATX_Heading;
+
             Text : constant Markdown.Inlines.Inline_Vector :=
-              Block.To_ATX_Heading.Text;
+              Heading.Text;
          begin
-            Self.Assign_Markup (Self.Default_Style, Layout, Text);
+            Self.Assign_Markup
+              (Self.Heading_Styles (Heading.Level), Layout, Text);
 
             Cairo.Move_To
               (Context,
@@ -349,5 +369,17 @@ package body Markdown.Renderer is
    begin
       Self.Default_Style := Style;
    end Set_Default_Style;
+
+   ----------------------
+   -- Set_Header_Style --
+   ----------------------
+
+   procedure Set_Heading_Style
+     (Self  : in out Renderer'Class;
+      Level : Markdown.Blocks.ATX_Headings.Heading_Level;
+      Style : Markdown.Styles.Style) is
+   begin
+      Self.Heading_Styles (Level) := Style;
+   end Set_Heading_Style;
 
 end Markdown.Renderer;

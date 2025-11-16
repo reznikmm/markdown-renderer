@@ -16,6 +16,17 @@ package body Markdown.Styles is
       Self.Font_Family := Value;
    end Set_Font_Family;
 
+   -------------------
+   -- Set_Font_Size --
+   -------------------
+
+   procedure Set_Font_Size
+     (Self  : in out Style;
+      Value : Pango_Unit) is
+   begin
+      Self.Font_Size := Value;
+   end Set_Font_Size;
+
    ----------------
    -- Set_Margin --
    ----------------
