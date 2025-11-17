@@ -38,6 +38,13 @@ package Markdown.Renderer is
       Level : Markdown.Blocks.ATX_Headings.Heading_Level)
         return Markdown.Styles.Style;
 
+   procedure Set_Paragraph_Style
+     (Self  : in out Renderer'Class;
+      Style : Markdown.Styles.Style);
+
+   function Paragraph_Style
+     (Self : Renderer'Class) return Markdown.Styles.Style;
+
    procedure Set_Code_Span_Style
      (Self  : in out Renderer'Class;
       Style : Markdown.Styles.Style);
@@ -53,6 +60,7 @@ private
    type Renderer is tagged limited record
       Default_Style   : Markdown.Styles.Style;
       Heading_Styles  : Style_Array;
+      Paragraph_Style : Markdown.Styles.Style;
       Code_Span_Style : Markdown.Styles.Style;
    end record;
 
@@ -64,6 +72,10 @@ private
      (Self  : Renderer'Class;
       Level : Markdown.Blocks.ATX_Headings.Heading_Level)
         return Markdown.Styles.Style is (Self.Heading_Styles (Level));
+
+   function Paragraph_Style
+     (Self : Renderer'Class) return Markdown.Styles.Style is
+       (Self.Paragraph_Style);
 
    function Code_Span_Style
      (Self : Renderer'Class) return Markdown.Styles.Style is

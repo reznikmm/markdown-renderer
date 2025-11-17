@@ -7,6 +7,7 @@ with Pango.Cairo;
 with System;
 
 with Markdown.Block_Containers;
+with Markdown.Blocks.Paragraphs;
 with Markdown.Blocks;
 with Markdown.Inlines;
 
@@ -296,11 +297,11 @@ package body Markdown.Renderer is
       Height   : Positive;
       Document : Markdown.Documents.Document'Class)
    is
-      Style : Markdown.Styles.Style := Self.Default_Style;
+      Style : constant Markdown.Styles.Style := Self.Default_Style;
 
       Offset : Block_Offset :=
-        (Width       => Width,
-         Height      => Height,
+        (Width       => Width - Style.Right_Margin,
+         Height      => Height - Style.Bottom_Margin,
          Offset_X    => Style.Left_Margin,
          Offset_Y    => Style.Top_Margin,
          Prev_Margin => 0);
@@ -319,12 +320,51 @@ package body Markdown.Renderer is
       Tight    : Boolean;
       Offset   : in out Block_Offset)
    is
+      procedure Render
+        (Text  : Markdown.Inlines.Inline_Vector;
+         Style : Markdown.Styles.Style);
+
+      ------------
+      -- Render --
+      ------------
+
+      procedure Render
+        (Text  : Markdown.Inlines.Inline_Vector;
+         Style : Markdown.Styles.Style)
+      is
+         Layout : constant Pango.Layout.Pango_Layout :=
+           Create_Layout (Context);
+
+         Width : constant Positive :=
+           Positive'Max
+             (50,
+              Offset.Width - Offset.Offset_X -
+                Style.Left_Margin - Style.Right_Margin);
+
+         Ignore, Height : Glib.Gint;
+      begin
+         Offset.Offset_Y := Offset.Offset_Y +
+           Natural'Max (Style.Top_Margin, Offset.Prev_Margin);
+
+         Layout.Set_Width (Glib.Gint (Pango.Enums.Pango_Scale * Width));
+         Self.Assign_Markup (Style, Layout, Text);
+
+         Cairo.Move_To
+           (Context,
+            Glib.Gdouble (Offset.Offset_X + Style.Left_Margin),
+            Glib.Gdouble (Offset.Offset_Y));
+
+         Pango.Cairo.Show_Layout (Context, Layout);
+         Layout.Get_Size (Ignore, Height);
+
+         Offset.Offset_Y := Offset.Offset_Y +
+           Positive (Pango.Enums.To_Pixels (Height));
+
+         Offset.Prev_Margin := Style.Bottom_Margin;
+      end Render;
    begin
       if Block.Is_ATX_Heading then
          declare
-            Layout : constant Pango.Layout.Pango_Layout :=
-              Create_Layout (Context);
-
             Heading : Markdown.Blocks.ATX_Headings.ATX_Heading renames
               Block.To_ATX_Heading;
 
@@ -334,33 +374,11 @@ package body Markdown.Renderer is
             Text : constant Markdown.Inlines.Inline_Vector :=
               Heading.Text;
 
-            Width : constant Positive :=
-              Positive'Max
-               (50,
-                Offset.Width - Offset.Offset_X -
-                  Style.Left_Margin - Style.Right_Margin);
-
-            Ignore, Height : Glib.Gint;
          begin
-            Offset.Offset_Y := Offset.Offset_Y +
-              Natural'Max (Style.Top_Margin, Offset.Prev_Margin);
-
-            Layout.Set_Width (Glib.Gint (Pango.Enums.Pango_Scale * Width));
-            Self.Assign_Markup (Style, Layout, Text);
-
-            Cairo.Move_To
-              (Context,
-               Glib.Gdouble (Offset.Offset_X + Style.Left_Margin),
-               Glib.Gdouble (Offset.Offset_Y));
-
-            Pango.Cairo.Show_Layout (Context, Layout);
-            Layout.Get_Size (Ignore, Height);
-
-            Offset.Offset_Y := Offset.Offset_Y +
-              Positive (Pango.Enums.To_Pixels (Height));
-
-            Offset.Prev_Margin := Style.Bottom_Margin;
+            Render (Text, Style);
          end;
+      elsif Block.Is_Paragraph then
+         Render (Block.To_Paragraph.Text, Self.Paragraph_Style);
       end if;
    end Render_Block;
 
@@ -413,5 +431,16 @@ package body Markdown.Renderer is
    begin
       Self.Heading_Styles (Level) := Style;
    end Set_Heading_Style;
+
+   -------------------------
+   -- Set_Paragraph_Style --
+   -------------------------
+
+   procedure Set_Paragraph_Style
+     (Self  : in out Renderer'Class;
+      Style : Markdown.Styles.Style) is
+   begin
+      Self.Paragraph_Style := Style;
+   end Set_Paragraph_Style;
 
 end Markdown.Renderer;

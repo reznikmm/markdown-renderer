@@ -76,6 +76,42 @@ package body Testsuite.Elements is
       end;
    end Header;
 
+   procedure Para (T : in out Trendy_Test.Operation'Class) is
+   begin
+      T.Register;
+
+      declare
+         Context : constant Cairo.Cairo_Context :=
+          Testsuite.Create_Cairo_Context (800, 600);
+
+         Parser   : Markdown.Parsers.Markdown_Parser;
+         Renderer : Markdown.Renderer.Renderer;
+      begin
+         Set_Styles (Renderer);
+         Parse
+          (Parser,
+           ["This is a paragraph. It should be rendered with its style.",
+            "This is a paragraph. It should be rendered with its style.",
+            "This is a paragraph. It should be rendered with its style.",
+            "This is a paragraph. It should be rendered with its style.",
+            "This is a paragraph. It should be rendered with its style.",
+            "This is a paragraph. It should be rendered with its style.",
+            "This is a paragraph. It should be rendered with its style.",
+            "This is a paragraph. It should be rendered with its style.",
+            --  "",
+            "Put some markup in here paragraph:",
+            "`Code`, *Italic*, **Bold**.",
+            ""]);
+
+         Renderer.Render
+           (Context  => Context,
+            Width    => 800,
+            Height   => 600,
+            Document => Parser.Document);
+         Assert (T, Context, "para.png");
+      end;
+   end Para;
+
    -----------
    -- Parse --
    -----------
@@ -126,6 +162,14 @@ package body Testsuite.Elements is
             Renderer.Set_Heading_Style (Level, Style);
          end;
       end loop;
+
+      declare
+         Style : Markdown.Styles.Style;
+      begin
+         Style.Set_Font_Family ("Sans-serif");
+         Style.Set_Font_Size (14.0);
+         Renderer.Set_Paragraph_Style (Style);
+      end;
 
       declare
          Style : Markdown.Styles.Style;

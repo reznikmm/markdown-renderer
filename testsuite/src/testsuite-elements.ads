@@ -13,8 +13,9 @@ private
 
    procedure Empty (T : in out Trendy_Test.Operation'Class);
    procedure Header (T : in out Trendy_Test.Operation'Class);
+   procedure Para (T : in out Trendy_Test.Operation'Class);
 
    Tests : constant Trendy_Test.Test_Group :=
-    [Empty'Access, Header'Access];
+    [Empty'Access, Header'Access, Para'Access];
 
 end Testsuite.Elements;
