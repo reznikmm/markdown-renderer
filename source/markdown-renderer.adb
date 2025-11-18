@@ -7,8 +7,9 @@ with Pango.Cairo;
 with System;
 
 with Markdown.Block_Containers;
-with Markdown.Blocks.Paragraphs;
 with Markdown.Blocks;
+with Markdown.Blocks.Lists;
+with Markdown.Blocks.Paragraphs;
 with Markdown.Inlines;
 
 with Glib.Object;
@@ -48,6 +49,12 @@ package body Markdown.Renderer is
       Block    : Markdown.Blocks.Block;
       Tight    : Boolean;
       Offset   : in out Block_Offset);
+
+   procedure Render_List
+     (Self    : Renderer'Class;
+      Context : Cairo.Cairo_Context;
+      List    : Markdown.Blocks.Lists.List;
+      Offset  : in out Block_Offset);
 
    procedure Assign_Markup
      (Self   : Renderer'Class;
@@ -379,6 +386,8 @@ package body Markdown.Renderer is
          end;
       elsif Block.Is_Paragraph then
          Render (Block.To_Paragraph.Text, Self.Paragraph_Style);
+      elsif Block.Is_List then
+         Render_List (Self, Context, Block.To_List, Offset);
       end if;
    end Render_Block;
 
@@ -397,6 +406,70 @@ package body Markdown.Renderer is
          Self.Render_Block (Context, Block, Tight, Offset);
       end loop;
    end Render_Blocks;
+
+   ------------------
+   -- Render_Block --
+   ------------------
+
+   procedure Render_List
+     (Self    : Renderer'Class;
+      Context : Cairo.Cairo_Context;
+      List    : Markdown.Blocks.Lists.List;
+      Offset  : in out Block_Offset)
+   is
+      use type VSS.Strings.Virtual_String;
+
+      procedure Render_Marker
+        (Marker : VSS.Strings.Virtual_String;
+         Style  : Markdown.Styles.Style);
+
+      procedure Render_Marker
+        (Marker : VSS.Strings.Virtual_String;
+         Style  : Markdown.Styles.Style)
+      is
+         Layout : constant Pango.Layout.Pango_Layout :=
+           Create_Layout (Context);
+
+         Text : Markdown.Inlines.Inline_Vector;
+      begin
+         Text.Append
+           (Markdown.Inlines.Inline'
+             (Kind => Markdown.Inlines.Text,
+              Text => Marker));
+
+         Self.Assign_Markup (Style, Layout, Text);
+
+         Cairo.Move_To
+           (Context,
+            Glib.Gdouble (Offset.Offset_X - Style.Left_Margin),
+            Glib.Gdouble (Offset.Offset_Y));
+
+         Pango.Cairo.Show_Layout (Context, Layout);
+      end Render_Marker;
+
+      function Marker_Image
+        (Index : Natural) return VSS.Strings.Virtual_String is
+          (VSS.Strings.Conversions.To_Virtual_String (Index'Image) & ".");
+
+      Style : constant Markdown.Styles.Style := Self.List_Item_Style;
+      Index : Natural := (if List.Is_Ordered then List.Start else 0);
+   begin
+      Offset.Offset_X := Offset.Offset_X + Style.Left_Margin;
+      Offset.Width := Offset.Width - Style.Left_Margin - Style.Right_Margin;
+
+      for Item of List loop
+         Render_Marker
+          ((if List.Is_Ordered then Marker_Image (Index) else "-"), Style);
+
+         Self.Render_Blocks
+           (Context, Item, Tight => not List.Is_Loose, Offset => Offset);
+
+         Index := Index + 1;
+      end loop;
+
+      Offset.Width := Offset.Width + Style.Left_Margin + Style.Right_Margin;
+      Offset.Offset_X := Offset.Offset_X - Style.Left_Margin;
+   end Render_List;
 
    -------------------------
    -- Set_Code_Span_Style --
@@ -431,6 +504,17 @@ package body Markdown.Renderer is
    begin
       Self.Heading_Styles (Level) := Style;
    end Set_Heading_Style;
+
+   -------------------------
+   -- Set_List_Item_Style --
+   -------------------------
+
+   procedure Set_List_Item_Style
+     (Self  : in out Renderer'Class;
+      Style : Markdown.Styles.Style) is
+   begin
+      Self.List_Item_Style := Style;
+   end Set_List_Item_Style;
 
    -------------------------
    -- Set_Paragraph_Style --

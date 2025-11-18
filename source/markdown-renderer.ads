@@ -52,6 +52,13 @@ package Markdown.Renderer is
    function Code_Span_Style
      (Self : Renderer'Class) return Markdown.Styles.Style;
 
+   procedure Set_List_Item_Style
+     (Self  : in out Renderer'Class;
+      Style : Markdown.Styles.Style);
+
+   function List_Item_Style
+     (Self : Renderer'Class) return Markdown.Styles.Style;
+
 private
 
    type Style_Array is array (Markdown.Blocks.ATX_Headings.Heading_Level) of
@@ -62,6 +69,7 @@ private
       Heading_Styles  : Style_Array;
       Paragraph_Style : Markdown.Styles.Style;
       Code_Span_Style : Markdown.Styles.Style;
+      List_Item_Style : Markdown.Styles.Style;
    end record;
 
    function Default_Style
@@ -80,5 +88,9 @@ private
    function Code_Span_Style
      (Self : Renderer'Class) return Markdown.Styles.Style is
        (Self.Code_Span_Style);
+
+   function List_Item_Style
+     (Self : Renderer'Class) return Markdown.Styles.Style is
+       (Self.List_Item_Style);
 
 end Markdown.Renderer;

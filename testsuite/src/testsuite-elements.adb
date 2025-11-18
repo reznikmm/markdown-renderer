@@ -76,6 +76,46 @@ package body Testsuite.Elements is
       end;
    end Header;
 
+   ----------
+   -- List --
+   ----------
+
+   procedure List (T : in out Trendy_Test.Operation'Class) is
+   begin
+      T.Register;
+
+      declare
+         Context : constant Cairo.Cairo_Context :=
+          Testsuite.Create_Cairo_Context (800, 600);
+
+         Parser   : Markdown.Parsers.Markdown_Parser;
+         Renderer : Markdown.Renderer.Renderer;
+      begin
+         Set_Styles (Renderer);
+         Parse
+          (Parser,
+           ["- Item 1",
+            "- Item 2 with `code`",
+            "- Item 3 with *italic* text",
+            "- Item 4 with **bold** text",
+            "",
+            "1. First ordered item",
+            "2. Second ordered item with `code`",
+            "3. Third ordered item with *italic* text",
+            "4. Fourth ordered item with **bold** text"]);
+         Renderer.Render
+           (Context  => Context,
+            Width    => 800,
+            Height   => 600,
+            Document => Parser.Document);
+         Assert (T, Context, "list.png");
+      end;
+   end List;
+
+   ----------
+   -- Para --
+   ----------
+
    procedure Para (T : in out Trendy_Test.Operation'Class) is
    begin
       T.Register;
@@ -169,6 +209,15 @@ package body Testsuite.Elements is
          Style.Set_Font_Family ("Sans-serif");
          Style.Set_Font_Size (14.0);
          Renderer.Set_Paragraph_Style (Style);
+      end;
+
+      declare
+         Style : Markdown.Styles.Style;
+      begin
+         Style.Set_Margin (Top => 0, Right => 0, Bottom => 0, Left => 30);
+         Style.Set_Font_Family ("Sans-serif");
+         Style.Set_Font_Size (14.0);
+         Renderer.Set_List_Item_Style (Style);
       end;
 
       declare
