@@ -6,6 +6,7 @@
 with VSS.Strings;
 
 package Markdown.Styles is
+   pragma Preelaborate;
 
    type Style is tagged private;
 
@@ -27,6 +28,12 @@ package Markdown.Styles is
 
    function Font_Family (Self : Style) return VSS.Strings.Virtual_String;
 
+   procedure Set_Font_Weight
+     (Self  : in out Style;
+      Value : VSS.Strings.Virtual_String);
+
+   function Font_Weight (Self : Style) return VSS.Strings.Virtual_String;
+
    type Pango_Unit is delta 1.0 / 1024.0 range 0.0 .. 1000.0;
    --  Pango units are in 1/1024 of a point.
 
@@ -36,6 +43,9 @@ package Markdown.Styles is
 
    function Font_Size (Self : Style) return Pango_Unit;
 
+   function Empty_Style return Style;
+   --  Style with no attribute assigned
+
 private
 
    type Style is tagged record
@@ -44,6 +54,7 @@ private
       Margin_Bottom : Natural := 0;
       Margin_Left   : Natural := 0;
       Font_Family   : VSS.Strings.Virtual_String;
+      Font_Weight   : VSS.Strings.Virtual_String;
       Font_Size     : Pango_Unit := 0.0;
    end record;
 
@@ -56,7 +67,19 @@ private
    function Font_Family (Self : Style) return VSS.Strings.Virtual_String is
      (Self.Font_Family);
 
+   function Font_Weight (Self : Style) return VSS.Strings.Virtual_String is
+     (Self.Font_Weight);
+
    function Font_Size (Self : Style) return Pango_Unit is
      (Self.Font_Size);
+
+   function Empty_Style return Style is
+     (Margin_Top    => 0,
+      Margin_Right  => 0,
+      Margin_Bottom => 0,
+      Margin_Left   => 0,
+      Font_Family   => VSS.Strings.Empty_Virtual_String,
+      Font_Weight   => VSS.Strings.Empty_Virtual_String,
+      Font_Size     => 0.0);
 
 end Markdown.Styles;

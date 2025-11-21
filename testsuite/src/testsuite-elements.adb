@@ -19,13 +19,49 @@ package body Testsuite.Elements is
 
    procedure Set_Styles (Renderer : in out Markdown.Renderer.Renderer);
 
+   ----------------
+   -- Code_Block --
+   ----------------
+
+   procedure Code_Block (T : in out Trendy_Test.Operation'Class) is
+   begin
+      T.Register (Parallelize => False);
+
+      declare
+         Context : constant Cairo.Cairo_Context :=
+          Testsuite.Create_Cairo_Context (800, 600);
+
+         Parser   : Markdown.Parsers.Markdown_Parser;
+         Renderer : Markdown.Renderer.Renderer;
+      begin
+         Set_Styles (Renderer);
+         Parse
+          (Parser,
+           ["This is a paragraph. It should be rendered with its style.",
+            "",
+            "```ada",
+            "funtion Miiiiiiin (A, B : Integer) return Integer;",
+            "```",
+            "",
+            "This is a paragraph. It should be rendered with its style.",
+            ""]);
+
+         Renderer.Render
+           (Context  => Context,
+            Width    => 800,
+            Height   => 600,
+            Document => Parser.Document);
+         Assert (T, Context, "code_block.png");
+      end;
+   end Code_Block;
+
    -----------
    -- Empty --
    -----------
 
    procedure Empty (T : in out Trendy_Test.Operation'Class) is
    begin
-      T.Register;
+      T.Register (Parallelize => False);
 
       declare
          Context : constant Cairo.Cairo_Context :=
@@ -50,7 +86,7 @@ package body Testsuite.Elements is
 
    procedure Header (T : in out Trendy_Test.Operation'Class) is
    begin
-      T.Register;
+      T.Register (Parallelize => False);
 
       declare
          Context : constant Cairo.Cairo_Context :=
@@ -82,7 +118,7 @@ package body Testsuite.Elements is
 
    procedure List (T : in out Trendy_Test.Operation'Class) is
    begin
-      T.Register;
+      T.Register (Parallelize => False);
 
       declare
          Context : constant Cairo.Cairo_Context :=
@@ -118,7 +154,7 @@ package body Testsuite.Elements is
 
    procedure Para (T : in out Trendy_Test.Operation'Class) is
    begin
-      T.Register;
+      T.Register (Parallelize => False);
 
       declare
          Context : constant Cairo.Cairo_Context :=
@@ -188,7 +224,7 @@ package body Testsuite.Elements is
       declare
          Style : Markdown.Styles.Style;
       begin
-         Style.Set_Font_Family ("Sans-serif");
+         Style.Set_Font_Family ("Ubuntu");
          Style.Set_Font_Size (16.0);
          Style.Set_Margin (Top => 10, Right => 20, Bottom => 0, Left => 30);
          Renderer.Set_Default_Style (Style);
@@ -206,7 +242,7 @@ package body Testsuite.Elements is
       declare
          Style : Markdown.Styles.Style;
       begin
-         Style.Set_Font_Family ("Sans-serif");
+         Style.Set_Font_Family ("Ubuntu");
          Style.Set_Font_Size (14.0);
          Renderer.Set_Paragraph_Style (Style);
       end;
@@ -215,7 +251,7 @@ package body Testsuite.Elements is
          Style : Markdown.Styles.Style;
       begin
          Style.Set_Margin (Top => 0, Right => 0, Bottom => 0, Left => 30);
-         Style.Set_Font_Family ("Sans-serif");
+         Style.Set_Font_Family ("Ubuntu");
          Style.Set_Font_Size (14.0);
          Renderer.Set_List_Item_Style (Style);
       end;
@@ -223,8 +259,17 @@ package body Testsuite.Elements is
       declare
          Style : Markdown.Styles.Style;
       begin
-         Style.Set_Font_Family ("Monospace");
+         Style.Set_Font_Family ("Ubuntu Mono");
          Renderer.Set_Code_Span_Style (Style);
+      end;
+
+      declare
+         Style : Markdown.Styles.Style;
+      begin
+         Style.Set_Font_Family ("Ubuntu Mono");
+         Style.Set_Font_Weight ("bold");
+         Style.Set_Font_Size (14.0);
+         Renderer.Set_Code_Block_Style (Style);
       end;
    end Set_Styles;
 

@@ -27,6 +27,17 @@ package body Markdown.Styles is
       Self.Font_Size := Value;
    end Set_Font_Size;
 
+   ---------------------
+   -- Set_Font_Weight --
+   ---------------------
+
+   procedure Set_Font_Weight
+     (Self  : in out Style;
+      Value : VSS.Strings.Virtual_String) is
+   begin
+      Self.Font_Weight := Value;
+   end Set_Font_Weight;
+
    ----------------
    -- Set_Margin --
    ----------------

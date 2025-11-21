@@ -10,6 +10,7 @@ with Markdown.Block_Containers;
 with Markdown.Blocks;
 with Markdown.Blocks.Lists;
 with Markdown.Blocks.Paragraphs;
+with Markdown.Blocks.Fenced_Code;
 with Markdown.Inlines;
 
 with Glib.Object;
@@ -19,7 +20,7 @@ with Pango.Enums;
 with Pango.Layout;
 
 with VSS.Characters.Latin;
-with VSS.Strings;
+with VSS.String_Vectors;
 with VSS.Strings.Conversions;
 with VSS.Unicode;
 
@@ -32,6 +33,30 @@ package body Markdown.Renderer is
       Offset_Y    : Natural;
       Prev_Margin : Natural := 0;
    end record;
+
+   type Dummy_Highlighter is new Markdown.Highlighters.Highlighter
+     with null record;
+
+   overriding procedure Highlight
+     (Self   : Dummy_Highlighter;
+      Info   : VSS.Strings.Virtual_String;
+      Lines  : VSS.String_Vectors.Virtual_String_Vector;
+      Action : not null access procedure
+        (Text     : VSS.Strings.Virtual_String;
+         Style    : Markdown.Styles.Style;
+         New_Line : Boolean));
+
+   Dummy : aliased Dummy_Highlighter;
+
+   function Highlighter
+     (Self : Renderer'Class;
+      Language : VSS.Strings.Virtual_String)
+      return Markdown.Highlighters.Highlighter_Access is
+     (if Self.Highlighters.Contains (Language)
+      then Self.Highlighters (Language)
+      elsif Self.Highlighters.Contains (VSS.Strings.Empty_Virtual_String)
+      then Self.Highlighters (VSS.Strings.Empty_Virtual_String)
+      else Dummy'Access);
 
    function Create_Layout
      (Context : Cairo.Cairo_Context) return Pango.Layout.Pango_Layout;
@@ -64,6 +89,78 @@ package body Markdown.Renderer is
    --  Assign text and attributes to Pango layout based on inline vector.
    --  Use enclosing block Style for default text attributes.
 
+   procedure Set_Span
+     (Attr : Pango.Attributes.Pango_Attribute;
+      From : VSS.Unicode.UTF8_Code_Unit_Offset;
+      To   : VSS.Unicode.UTF8_Code_Unit_Offset);
+
+   procedure Apply_Style
+     (List  : Pango.Attributes.Pango_Attr_List;
+      Style : Markdown.Styles.Style;
+      From  : VSS.Unicode.UTF8_Code_Unit_Offset;
+      To    : VSS.Unicode.UTF8_Code_Unit_Offset);
+
+   procedure Show_Layout
+     (Context : Cairo.Cairo_Context;
+      Layout  : Pango.Layout.Pango_Layout;
+      Style   : Markdown.Styles.Style;
+      Offset  : in out Block_Offset);
+
+   -----------------
+   -- Apply_Style --
+   -----------------
+
+   procedure Apply_Style
+     (List  : Pango.Attributes.Pango_Attr_List;
+      Style : Markdown.Styles.Style;
+      From  : VSS.Unicode.UTF8_Code_Unit_Offset;
+      To    : VSS.Unicode.UTF8_Code_Unit_Offset)
+   is
+      use type Markdown.Styles.Pango_Unit;
+      use type VSS.Strings.Virtual_String;
+
+      function Attr_Size_New
+        (Size : Glib.Gint) return Pango.Attributes.Pango_Attribute;
+      pragma Import (C, Attr_Size_New, "pango_attr_size_new");
+      --  Create a new font-size attribute in fractional points.
+
+   begin
+      if not Style.Font_Family.Is_Empty then
+         declare
+            Attr : constant Pango.Attributes.Pango_Attribute :=
+              Pango.Attributes.Attr_Family_New
+                (VSS.Strings.Conversions.To_UTF_8_String
+                   (Style.Font_Family));
+         begin
+            Set_Span (Attr, From, To);
+            List.Insert (Attr);
+         end;
+      end if;
+
+      if not Style.Font_Weight.Is_Empty then
+         declare
+            Attr : constant Pango.Attributes.Pango_Attribute :=
+              Pango.Attributes.Attr_Weight_New
+                (if Style.Font_Weight = "bold"
+                 then Pango.Enums.Pango_Weight_Bold
+                 else Pango.Enums.Pango_Weight_Normal);
+         begin
+            Set_Span (Attr, From, To);
+            List.Insert (Attr);
+         end;
+      end if;
+
+      if Style.Font_Size /= 0.0 then
+         declare
+            Attr : constant Pango.Attributes.Pango_Attribute :=
+              Attr_Size_New (Glib.Gint (Style.Font_Size * 1024.0));
+         begin
+            Set_Span (Attr, From, To);
+            List.Insert (Attr);
+         end;
+      end if;
+   end Apply_Style;
+
    -------------------
    -- Assign_Markup --
    -------------------
@@ -82,88 +179,10 @@ package body Markdown.Renderer is
       --  Create a new font style attribute.
       --  "style": the style
 
-      function Attr_Size_New
-        (Size : Glib.Gint) return Pango.Attributes.Pango_Attribute;
-      pragma Import (C, Attr_Size_New, "pango_attr_size_new");
-      --  Create a new font-size attribute in fractional points.
-
       procedure Walk
         (Cursor : in out Markdown.Inlines.Inline_Vectors.Cursor;
          Text   : in out VSS.Strings.Virtual_String;
          List   : Pango.Attributes.Pango_Attr_List);
-
-      procedure Set_Span
-        (Attr : Pango.Attributes.Pango_Attribute;
-         From : VSS.Unicode.UTF8_Code_Unit_Offset;
-         To   : VSS.Unicode.UTF8_Code_Unit_Offset);
-
-      procedure Apply_Style
-        (List  : Pango.Attributes.Pango_Attr_List;
-         Style : Markdown.Styles.Style;
-         From  : VSS.Unicode.UTF8_Code_Unit_Offset;
-         To    : VSS.Unicode.UTF8_Code_Unit_Offset);
-
-      -----------------
-      -- Apply_Style --
-      -----------------
-
-      procedure Apply_Style
-        (List  : Pango.Attributes.Pango_Attr_List;
-         Style : Markdown.Styles.Style;
-         From  : VSS.Unicode.UTF8_Code_Unit_Offset;
-         To    : VSS.Unicode.UTF8_Code_Unit_Offset)
-      is
-         use type Markdown.Styles.Pango_Unit;
-      begin
-         if not Style.Font_Family.Is_Empty then
-            declare
-               Attr : constant Pango.Attributes.Pango_Attribute :=
-                 Pango.Attributes.Attr_Family_New
-                   (VSS.Strings.Conversions.To_UTF_8_String
-                     (Style.Font_Family));
-            begin
-               Set_Span (Attr, From, To);
-               List.Insert (Attr);
-            end;
-         end if;
-
-         if Style.Font_Size /= 0.0 then
-            declare
-               Attr : constant Pango.Attributes.Pango_Attribute :=
-                 Attr_Size_New (Glib.Gint (Style.Font_Size * 1024.0));
-            begin
-               Set_Span (Attr, From, To);
-               List.Insert (Attr);
-            end;
-         end if;
-      end Apply_Style;
-
-      --------------
-      -- Set_Span --
-      --------------
-
-      procedure Set_Span
-        (Attr : Pango.Attributes.Pango_Attribute;
-         From : VSS.Unicode.UTF8_Code_Unit_Offset;
-         To   : VSS.Unicode.UTF8_Code_Unit_Offset)
-      is
-
-         function To_Guint
-           (Value : VSS.Unicode.UTF8_Code_Unit_Offset) return Glib.Guint is
-             (if Value = -1 then Glib.Guint'Last else Glib.Guint (Value));
-
-         type Internal is record
-            Klass : System.Address;
-            Start_Index : Glib.Guint;
-            End_Index   : Glib.Guint;
-         end record;
-
-         Object : Internal
-           with Import, Address => Pango.Attributes.Convert (Attr);
-      begin
-         Object.Start_Index := To_Guint (From);
-         Object.End_Index := To_Guint (To);
-      end Set_Span;
 
       ----------
       -- Walk --
@@ -293,6 +312,39 @@ package body Markdown.Renderer is
       return Pango_Layout (Get_User_Data (Internal (Context), Stub));
    end Create_Layout;
 
+   ---------------
+   -- Highlight --
+   ---------------
+
+   overriding procedure Highlight
+     (Self   : Dummy_Highlighter;
+      Info   : VSS.Strings.Virtual_String;
+      Lines  : VSS.String_Vectors.Virtual_String_Vector;
+      Action : not null access procedure
+        (Text     : VSS.Strings.Virtual_String;
+         Style    : Markdown.Styles.Style;
+         New_Line : Boolean)) is
+   begin
+      for Index in 1 .. Lines.Last_Index loop
+         Action
+           (Lines (Index),
+            Markdown.Styles.Empty_Style,
+            Index /= Lines.Last_Index);
+      end loop;
+   end Highlight;
+
+   --------------------------
+   -- Register_Highlighter --
+   --------------------------
+
+   procedure Register_Highlighter
+     (Self     : in out Renderer'Class;
+      Language : VSS.Strings.Virtual_String;
+      Value    : not null Markdown.Highlighters.Highlighter_Access) is
+   begin
+      Self.Highlighters.Include (Language, Value);
+   end Register_Highlighter;
+
    ------------
    -- Render --
    ------------
@@ -327,48 +379,94 @@ package body Markdown.Renderer is
       Tight    : Boolean;
       Offset   : in out Block_Offset)
    is
-      procedure Render
+      procedure Render_Inlines
         (Text  : Markdown.Inlines.Inline_Vector;
          Style : Markdown.Styles.Style);
 
-      ------------
-      -- Render --
-      ------------
+      procedure Render_Code
+        (Info        : VSS.Strings.Virtual_String;
+         Lines       : VSS.String_Vectors.Virtual_String_Vector;
+         Highlighter : not null Markdown.Highlighters.Highlighter_Access;
+         Style       : Markdown.Styles.Style);
 
-      procedure Render
+      -----------------
+      -- Render_Code --
+      -----------------
+
+      procedure Render_Code
+        (Info        : VSS.Strings.Virtual_String;
+         Lines       : VSS.String_Vectors.Virtual_String_Vector;
+         Highlighter : not null Markdown.Highlighters.Highlighter_Access;
+         Style       : Markdown.Styles.Style)
+      is
+         procedure Action
+           (Text     : VSS.Strings.Virtual_String;
+            Style    : Markdown.Styles.Style;
+            New_Line : Boolean);
+
+         Result : VSS.Strings.Virtual_String;
+         List   : constant Pango.Attributes.Pango_Attr_List :=
+           Pango.Attributes.Pango_Attr_List_New;
+
+         ------------
+         -- Action --
+         ------------
+
+         procedure Action
+           (Text     : VSS.Strings.Virtual_String;
+            Style    : Markdown.Styles.Style;
+            New_Line : Boolean)
+         is
+            use type VSS.Unicode.UTF8_Code_Unit_Offset;
+
+            To : VSS.Unicode.UTF8_Code_Unit_Offset;
+
+            From : constant VSS.Unicode.UTF8_Code_Unit_Offset :=
+              (if Result.Is_Empty then 0
+               else Result.At_Last_Character.Last_UTF8_Offset);
+
+         begin
+            if not Text.Is_Empty then
+               Result.Append (Text);
+               To := Result.At_Last_Character.Last_UTF8_Offset;
+               Apply_Style (List, Style, From, To + 1);
+            end if;
+
+            if New_Line then
+               Result.Append (VSS.Characters.Latin.Line_Feed);
+            end if;
+         end Action;
+
+         use type VSS.Unicode.UTF8_Code_Unit_Offset;
+
+         Layout : constant Pango.Layout.Pango_Layout :=
+           Create_Layout (Context);
+
+      begin
+         --  Apply_Style (List, Self.Default_Style, 0, -1);
+         Apply_Style (List, Style, 0, -1);
+         Highlighter.Highlight (Info, Lines, Action'Access);
+         Layout.Set_Text (VSS.Strings.Conversions.To_UTF_8_String (Result));
+         Layout.Set_Attributes (List);
+         Show_Layout (Context, Layout, Style, Offset);
+      end Render_Code;
+
+      --------------------
+      -- Render_Inlines --
+      --------------------
+
+      procedure Render_Inlines
         (Text  : Markdown.Inlines.Inline_Vector;
          Style : Markdown.Styles.Style)
       is
          Layout : constant Pango.Layout.Pango_Layout :=
            Create_Layout (Context);
 
-         Width : constant Positive :=
-           Positive'Max
-             (50,
-              Offset.Width - Offset.Offset_X -
-                Style.Left_Margin - Style.Right_Margin);
-
-         Ignore, Height : Glib.Gint;
       begin
-         Offset.Offset_Y := Offset.Offset_Y +
-           Natural'Max (Style.Top_Margin, Offset.Prev_Margin);
-
-         Layout.Set_Width (Glib.Gint (Pango.Enums.Pango_Scale * Width));
          Self.Assign_Markup (Style, Layout, Text);
+         Show_Layout (Context, Layout, Style, Offset);
+      end Render_Inlines;
 
-         Cairo.Move_To
-           (Context,
-            Glib.Gdouble (Offset.Offset_X + Style.Left_Margin),
-            Glib.Gdouble (Offset.Offset_Y));
-
-         Pango.Cairo.Show_Layout (Context, Layout);
-         Layout.Get_Size (Ignore, Height);
-
-         Offset.Offset_Y := Offset.Offset_Y +
-           Positive (Pango.Enums.To_Pixels (Height));
-
-         Offset.Prev_Margin := Style.Bottom_Margin;
-      end Render;
    begin
       if Block.Is_ATX_Heading then
          declare
@@ -382,12 +480,18 @@ package body Markdown.Renderer is
               Heading.Text;
 
          begin
-            Render (Text, Style);
+            Render_Inlines (Text, Style);
          end;
       elsif Block.Is_Paragraph then
-         Render (Block.To_Paragraph.Text, Self.Paragraph_Style);
+         Render_Inlines (Block.To_Paragraph.Text, Self.Paragraph_Style);
       elsif Block.Is_List then
          Render_List (Self, Context, Block.To_List, Offset);
+      elsif Block.Is_Fenced_Code_Block then
+         Render_Code
+           (Block.To_Fenced_Code_Block.Info_String,
+            Block.To_Fenced_Code_Block.Text,
+            Self.Highlighter (Block.To_Fenced_Code_Block.Info_String),
+            Self.Code_Block_Style);
       end if;
    end Render_Block;
 
@@ -471,6 +575,17 @@ package body Markdown.Renderer is
       Offset.Offset_X := Offset.Offset_X - Style.Left_Margin;
    end Render_List;
 
+   --------------------------
+   -- Set_Code_Block_Style --
+   --------------------------
+
+   procedure Set_Code_Block_Style
+     (Self  : in out Renderer'Class;
+      Style : Markdown.Styles.Style) is
+   begin
+      Self.Code_Block_Style := Style;
+   end Set_Code_Block_Style;
+
    -------------------------
    -- Set_Code_Span_Style --
    -------------------------
@@ -526,5 +641,71 @@ package body Markdown.Renderer is
    begin
       Self.Paragraph_Style := Style;
    end Set_Paragraph_Style;
+
+   --------------
+   -- Set_Span --
+   --------------
+
+   procedure Set_Span
+     (Attr : Pango.Attributes.Pango_Attribute;
+      From : VSS.Unicode.UTF8_Code_Unit_Offset;
+      To   : VSS.Unicode.UTF8_Code_Unit_Offset)
+   is
+      use type VSS.Unicode.UTF8_Code_Unit_Offset;
+
+      function To_Guint
+        (Value : VSS.Unicode.UTF8_Code_Unit_Offset) return Glib.Guint is
+        (if Value = -1 then Glib.Guint'Last else Glib.Guint (Value));
+
+      type Internal is record
+         Klass       : System.Address;
+         Start_Index : Glib.Guint;
+         End_Index   : Glib.Guint;
+      end record;
+
+      Object : Internal
+        with Import, Address => Pango.Attributes.Convert (Attr);
+   begin
+      Object.Start_Index := To_Guint (From);
+      Object.End_Index := To_Guint (To);
+   end Set_Span;
+
+   -----------------
+   -- Show_Layout --
+   -----------------
+
+   procedure Show_Layout
+     (Context : Cairo.Cairo_Context;
+      Layout  : Pango.Layout.Pango_Layout;
+      Style   : Markdown.Styles.Style;
+      Offset  : in out Block_Offset)
+   is
+      Width : constant Positive :=
+        Positive'Max
+          (50,
+           Offset.Width - Offset.Offset_X -
+             Style.Left_Margin - Style.Right_Margin);
+
+      Ignore, Height : Glib.Gint;
+   begin
+      Offset.Offset_Y := Offset.Offset_Y +
+        Natural'Max (Style.Top_Margin, Offset.Prev_Margin);
+
+      Layout.Set_Width (Glib.Gint (Pango.Enums.Pango_Scale * Width));
+
+      Cairo.Move_To
+        (Context,
+         Glib.Gdouble (Offset.Offset_X + Style.Left_Margin),
+         Glib.Gdouble (Offset.Offset_Y));
+
+      Pango.Cairo.Show_Layout (Context, Layout);
+      Layout.Get_Size (Ignore, Height);
+
+      Offset.Offset_Y := Offset.Offset_Y +
+        Positive (Pango.Enums.To_Pixels (Height));
+
+      Offset.Prev_Margin := Style.Bottom_Margin;
+   end Show_Layout;
+
 
 end Markdown.Renderer;
