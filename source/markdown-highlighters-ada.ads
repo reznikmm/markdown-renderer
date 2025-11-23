@@ -17,7 +17,10 @@ package Markdown.Highlighters.Ada is
      (Self    : in out Ada_Highlighter'Class;
       Keyword : Markdown.Styles.Style;
       Id      : Markdown.Styles.Style;
-      Comment : Markdown.Styles.Style);
+      Comment : Markdown.Styles.Style;
+      String  : Markdown.Styles.Style;
+      Char    : Markdown.Styles.Style;
+      Number  : Markdown.Styles.Style);
 
    procedure Highlight
      (Self   : Ada_Highlighter;
@@ -30,7 +33,7 @@ package Markdown.Highlighters.Ada is
 
 private
 
-   type Style_Array is array (0 .. 2) of Markdown.Styles.Style;
+   type Style_Array is array (0 .. 5) of Markdown.Styles.Style;
 
    package String_Sets is new Containers.Hashed_Sets
      (VSS.Strings.Virtual_String,

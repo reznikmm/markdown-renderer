@@ -5,6 +5,7 @@
 
 pragma Ada_2022;
 
+with VSS.Characters;
 with VSS.Strings.Character_Iterators;
 with VSS.Strings.Cursors;
 with VSS.Transformers.Caseless;
@@ -17,8 +18,30 @@ package body Markdown.Highlighters.Ada is
 
    Comment    : constant Wide_Wide_String := "--.*";
 
+   String     : constant Wide_Wide_String :=
+     """(?:""""|[^""\p{Cc}\p{Co}\p{Cs}\t\p{Zl}\p{Zp}])*""";
+
+   Character  : constant Wide_Wide_String :=
+     "'[^\p{Cc}\p{Co}\p{Cs}\t\p{Zl}\p{Zp}]'";
+
+   Exp        : constant Wide_Wide_String :=
+     "(?:[Ee][+-]?[0-9](?:_?[0-9])*)?";
+
+   Decimal    : constant Wide_Wide_String :=
+     "[0-9](?:_?[0-9])*(?:\.[0-9](?:_?[0-9])*)?" & Exp;
+
+   Based      : constant Wide_Wide_String :=
+     "[0-9](?:_?[0-9])*#[0-9a-fA-F](?:_?[0-9a-fA-F])*#" & Exp;
+
+   Numeric    : constant Wide_Wide_String :=
+     "(?:" & Based & ")|(?:" & Decimal & ")";
+
    Pattern    : constant Wide_Wide_String :=
-     "(" & Identifier & ")|(" & Comment & ")";
+     "(" & Identifier & ")|" &  --  1 => Identifier
+     "(" & Comment & ")|" &     --  2 => Comment
+     "(" & String & ")|" &      --  3 => String literal
+     "(" & Character & ")|" &   --  4 => Character literal
+     "(" & Numeric & ")";       --  5 => Numeric literal
 
    function Is_Keyword
      (Self : Ada_Highlighter'Class;
@@ -41,10 +64,15 @@ package body Markdown.Highlighters.Ada is
          New_Line : Boolean))
    is
       use type VSS.Strings.Character_Offset;
+      use type VSS.Characters.Virtual_Character;
 
       function Back
         (Cursor : VSS.Strings.Cursors.Abstract_Character_Cursor'Class)
            return VSS.Strings.Character_Iterators.Character_Iterator;
+
+      function After_Tick
+        (Cursor : VSS.Strings.Cursors.Abstract_Character_Cursor'Class)
+           return Boolean is (Back (Cursor).Element = ''');
 
       ----------
       -- Back --
@@ -86,12 +114,14 @@ package body Markdown.Highlighters.Ada is
                      New_Line => False);
                end if;
 
-               for J in 1 .. 2 loop
+               for J in 1 .. Self.Style'Last loop
                   if Match.Has_Capture (J) then
                      Action
                        (Text     => Match.Captured,
                         Style    => Self.Style
-                          (if J = 1 and then Self.Is_Keyword (Match.Captured)
+                          (if J = 1
+                             and then not After_Tick (Match.First_Marker)
+                             and then Self.Is_Keyword (Match.Captured)
                            then 0 else J),
                         New_Line => False);
 
@@ -125,7 +155,10 @@ package body Markdown.Highlighters.Ada is
      (Self    : in out Ada_Highlighter'Class;
       Keyword : Markdown.Styles.Style;
       Id      : Markdown.Styles.Style;
-      Comment : Markdown.Styles.Style) is
+      Comment : Markdown.Styles.Style;
+      String  : Markdown.Styles.Style;
+      Char    : Markdown.Styles.Style;
+      Number  : Markdown.Styles.Style) is
    begin
       if not Self.Pattern.Is_Valid then
          Self.Pattern := VSS.Regular_Expressions.To_Regular_Expression
@@ -135,7 +168,10 @@ package body Markdown.Highlighters.Ada is
          Self.Style :=
            [0 => Keyword,
             1 => Id,
-            2 => Comment];
+            2 => Comment,
+            3 => String,
+            4 => Char,
+            5 => Number];
 
          declare
             List : constant VSS.String_Vectors.Virtual_String_Vector :=

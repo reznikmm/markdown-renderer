@@ -41,14 +41,18 @@ package body Testsuite.Elements is
          Highlighter.Initialize
            (Keyword => Renderer.Token_Style (1),
             Id      => Renderer.Token_Style (2),
-            Comment => Renderer.Token_Style (3));
+            Comment => Renderer.Token_Style (3),
+            String  => Renderer.Token_Style (4),
+            Char    => Renderer.Token_Style (5),
+            Number  => Renderer.Token_Style (6));
 
          Renderer.Register_Highlighter ("ada", Highlighter'Unchecked_Access);
 
          Parse
           (Parser,
            ["```ada",
-            "function Min (A, B : Integer) return Integer;  --  fun",
+            "function ""*"" (B : Char := 'x') return Integer is -- 1",
+            "  (Int (0.1E-5) - 2#1F_FF#e1 + X'Mod (11) Mod 5);",
             "--  Comment 1 -- body ""aa"" '1'",
             "```"]);
 
@@ -332,6 +336,27 @@ package body Testsuite.Elements is
       begin
          Style.Set_Foreground_Color ("10E010");
          Renderer.Set_Token_Style (3, Style);
+      end;
+
+      declare
+         Style : Markdown.Styles.Style;  --  String
+      begin
+         Style.Set_Foreground_Color ("E00000");
+         Renderer.Set_Token_Style (4, Style);
+      end;
+
+      declare
+         Style : Markdown.Styles.Style;  --  Character
+      begin
+         Style.Set_Foreground_Color ("E08000");
+         Renderer.Set_Token_Style (5, Style);
+      end;
+
+      declare
+         Style : Markdown.Styles.Style;  --  Number
+      begin
+         Style.Set_Foreground_Color ("0080E0");
+         Renderer.Set_Token_Style (6, Style);
       end;
    end Set_Styles;
 
