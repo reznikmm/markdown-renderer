@@ -5,6 +5,7 @@
 
 with Markdown.Blocks.ATX_Headings;
 with Markdown.Documents;
+with Markdown.Highlighters.Ada;
 with Markdown.Parsers.Enable_GFM;
 with Markdown.Renderer;
 with Markdown.Styles;
@@ -18,6 +19,47 @@ package body Testsuite.Elements is
       Source : VSS.String_Vectors.Virtual_String_Vector);
 
    procedure Set_Styles (Renderer : in out Markdown.Renderer.Renderer);
+
+   --------------------
+   -- Ada_Code_Block --
+   --------------------
+
+   procedure Ada_Code_Block (T : in out Trendy_Test.Operation'Class) is
+   begin
+      T.Register (Parallelize => False);
+
+      declare
+         Context : constant Cairo.Cairo_Context :=
+          Testsuite.Create_Cairo_Context (800, 600);
+
+         Highlighter : aliased Markdown.Highlighters.Ada.Ada_Highlighter;
+         Parser      : Markdown.Parsers.Markdown_Parser;
+         Renderer    : Markdown.Renderer.Renderer;
+      begin
+         Set_Styles (Renderer);
+
+         Highlighter.Initialize
+           (Keyword => Renderer.Token_Style (1),
+            Id      => Renderer.Token_Style (2),
+            Comment => Renderer.Token_Style (3));
+
+         Renderer.Register_Highlighter ("ada", Highlighter'Unchecked_Access);
+
+         Parse
+          (Parser,
+           ["```ada",
+            "function Min (A, B : Integer) return Integer;  --  fun",
+            "--  Comment 1 -- body ""aa"" '1'",
+            "```"]);
+
+         Renderer.Render
+           (Context  => Context,
+            Width    => 800,
+            Height   => 600,
+            Document => Parser.Document);
+         Assert (T, Context, "ada_code_block.png");
+      end;
+   end Ada_Code_Block;
 
    ----------------
    -- Code_Block --
@@ -40,7 +82,7 @@ package body Testsuite.Elements is
            ["This is a paragraph. It should be rendered with its style.",
             "",
             "```ada",
-            "funtion Miiiiiiin (A, B : Integer) return Integer;",
+            "function Miiiiiiin (A, B : Integer) return Integer;",
             "```",
             "",
             "This is a paragraph. It should be rendered with its style.",
@@ -267,9 +309,15 @@ package body Testsuite.Elements is
          Style : Markdown.Styles.Style;
       begin
          Style.Set_Font_Family ("Ubuntu Mono");
-         Style.Set_Font_Weight ("bold");
          Style.Set_Font_Size (14.0);
          Renderer.Set_Code_Block_Style (Style);
+      end;
+
+      declare
+         Style : Markdown.Styles.Style;
+      begin
+         Style.Set_Font_Weight ("bold");
+         Renderer.Set_Token_Style (1, Style);
       end;
    end Set_Styles;
 

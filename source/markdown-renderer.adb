@@ -670,6 +670,18 @@ package body Markdown.Renderer is
       Object.End_Index := To_Guint (To);
    end Set_Span;
 
+   ---------------------
+   -- Set_Token_Style --
+   ---------------------
+
+   procedure Set_Token_Style
+     (Self  : in out Renderer'Class;
+      Token : Token_Kind;
+      Style : Markdown.Styles.Style) is
+   begin
+      Self.Token_Styles (Token) := Style;
+   end Set_Token_Style;
+
    -----------------
    -- Show_Layout --
    -----------------

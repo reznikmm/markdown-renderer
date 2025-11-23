@@ -75,6 +75,16 @@ package Markdown.Renderer is
    function List_Item_Style
      (Self : Renderer'Class) return Markdown.Styles.Style;
 
+   subtype Token_Kind is Positive range 1 .. 10;
+
+   procedure Set_Token_Style
+     (Self  : in out Renderer'Class;
+      Token : Token_Kind;
+      Style : Markdown.Styles.Style);
+
+   function Token_Style
+     (Self  : Renderer'Class; Token : Token_Kind) return Markdown.Styles.Style;
+
 private
 
    package Highlighter_Maps is new Ada.Containers.Hashed_Maps
@@ -84,17 +94,19 @@ private
       Equivalent_Keys => VSS.Strings."=",
       "="             => Markdown.Highlighters."=");
 
-   type Style_Array is array (Markdown.Blocks.ATX_Headings.Heading_Level) of
+   type Style_Array is array (Positive range <>) of
      Markdown.Styles.Style;
 
    type Renderer is tagged limited record
       Highlighters     : Highlighter_Maps.Map;
       Default_Style    : Markdown.Styles.Style;
-      Heading_Styles   : Style_Array;
+      Heading_Styles   :
+        Style_Array (Markdown.Blocks.ATX_Headings.Heading_Level);
       Paragraph_Style  : Markdown.Styles.Style;
       Code_Span_Style  : Markdown.Styles.Style;
       Code_Block_Style : Markdown.Styles.Style;
       List_Item_Style  : Markdown.Styles.Style;
+      Token_Styles     : Style_Array (Token_Kind);
    end record;
 
    function Default_Style
@@ -121,5 +133,10 @@ private
    function List_Item_Style
      (Self : Renderer'Class) return Markdown.Styles.Style is
        (Self.List_Item_Style);
+
+   function Token_Style
+     (Self  : Renderer'Class;
+      Token : Token_Kind) return Markdown.Styles.Style is
+        (Self.Token_Styles (Token));
 
 end Markdown.Renderer;
