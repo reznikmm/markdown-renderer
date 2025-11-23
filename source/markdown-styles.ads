@@ -43,18 +43,25 @@ package Markdown.Styles is
 
    function Font_Size (Self : Style) return Pango_Unit;
 
+   procedure Set_Foreground_Color
+     (Self  : in out Style;
+      Value : VSS.Strings.Virtual_String);
+
+   function Foreground_Color (Self : Style) return VSS.Strings.Virtual_String;
+
    function Empty_Style return Style;
    --  Style with no attribute assigned
 
 private
 
    type Style is tagged record
+      Font_Family   : VSS.Strings.Virtual_String;
+      Font_Weight   : VSS.Strings.Virtual_String;
+      Foreground    : VSS.Strings.Virtual_String;
       Margin_Top    : Natural := 0;
       Margin_Right  : Natural := 0;
       Margin_Bottom : Natural := 0;
       Margin_Left   : Natural := 0;
-      Font_Family   : VSS.Strings.Virtual_String;
-      Font_Weight   : VSS.Strings.Virtual_String;
       Font_Size     : Pango_Unit := 0.0;
    end record;
 
@@ -73,6 +80,9 @@ private
    function Font_Size (Self : Style) return Pango_Unit is
      (Self.Font_Size);
 
+   function Foreground_Color (Self : Style) return VSS.Strings.Virtual_String
+     is (Self.Foreground);
+
    function Empty_Style return Style is
      (Margin_Top    => 0,
       Margin_Right  => 0,
@@ -80,6 +90,7 @@ private
       Margin_Left   => 0,
       Font_Family   => VSS.Strings.Empty_Virtual_String,
       Font_Weight   => VSS.Strings.Empty_Virtual_String,
+      Foreground    => VSS.Strings.Empty_Virtual_String,
       Font_Size     => 0.0);
 
 end Markdown.Styles;

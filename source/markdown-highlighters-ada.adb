@@ -94,6 +94,8 @@ package body Markdown.Highlighters.Ada is
                           (if J = 1 and then Self.Is_Keyword (Match.Captured)
                            then 0 else J),
                         New_Line => False);
+
+                     exit;
                   end if;
                end loop;
 

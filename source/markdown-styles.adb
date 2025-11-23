@@ -38,6 +38,20 @@ package body Markdown.Styles is
       Self.Font_Weight := Value;
    end Set_Font_Weight;
 
+   --------------------------
+   -- Set_Foreground_Color --
+   --------------------------
+
+   procedure Set_Foreground_Color
+     (Self  : in out Style;
+      Value : VSS.Strings.Virtual_String)
+   is
+      use type VSS.Strings.Character_Count;
+   begin
+      pragma Assert (Value.Character_Length = 6);
+      Self.Foreground := Value;
+   end Set_Foreground_Color;
+
    ----------------
    -- Set_Margin --
    ----------------

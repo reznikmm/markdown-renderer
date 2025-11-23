@@ -314,10 +314,24 @@ package body Testsuite.Elements is
       end;
 
       declare
-         Style : Markdown.Styles.Style;
+         Style : Markdown.Styles.Style;  --  Keyword
       begin
          Style.Set_Font_Weight ("bold");
          Renderer.Set_Token_Style (1, Style);
+      end;
+
+      declare
+         Style : Markdown.Styles.Style;  --  Identifier
+      begin
+         Style.Set_Foreground_Color ("1010E0");
+         Renderer.Set_Token_Style (2, Style);
+      end;
+
+      declare
+         Style : Markdown.Styles.Style;  --  Comment
+      begin
+         Style.Set_Foreground_Color ("10E010");
+         Renderer.Set_Token_Style (3, Style);
       end;
    end Set_Styles;
 

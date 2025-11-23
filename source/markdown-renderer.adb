@@ -34,6 +34,12 @@ package body Markdown.Renderer is
       Prev_Margin : Natural := 0;
    end record;
 
+   type Color is record
+      Red, Green, Blue : Glib.Guint16;
+   end record;
+
+   function To_Color (Text : VSS.Strings.Virtual_String) return Color;
+
    type Dummy_Highlighter is new Markdown.Highlighters.Highlighter
      with null record;
 
@@ -159,6 +165,20 @@ package body Markdown.Renderer is
             List.Insert (Attr);
          end;
       end if;
+
+      if not Style.Foreground_Color.Is_Empty then
+         declare
+            Value : constant Color := To_Color (Style.Foreground_Color);
+            Attr : constant Pango.Attributes.Pango_Attribute :=
+              Pango.Attributes.Attr_Foreground_New
+                (Red => Value.Red,
+                 Green => Value.Green,
+                 Blue => Value.Blue);
+         begin
+            Set_Span (Attr, From, To);
+            List.Insert (Attr);
+         end;
+      end if;
    end Apply_Style;
 
    -------------------
@@ -230,7 +250,7 @@ package body Markdown.Renderer is
                         To : VSS.Unicode.UTF8_Code_Unit_Offset;
 
                         From : constant VSS.Unicode.UTF8_Code_Unit_Offset :=
-                          Text.At_Last_Character.Last_UTF8_Offset;
+                          Text.At_Last_Character.Last_UTF8_Offset + 1;
 
                         Attr : constant Pango.Attributes.Pango_Attribute :=
                           Attr_Style_New (Pango.Enums.Pango_Style_Italic);
@@ -250,7 +270,7 @@ package body Markdown.Renderer is
                         To : VSS.Unicode.UTF8_Code_Unit_Offset;
 
                         From : constant VSS.Unicode.UTF8_Code_Unit_Offset :=
-                          Text.At_Last_Character.Last_UTF8_Offset;
+                          Text.At_Last_Character.Last_UTF8_Offset + 1;
 
                         Attr : constant Pango.Attributes.Pango_Attribute :=
                           Pango.Attributes.Attr_Weight_New
@@ -423,7 +443,7 @@ package body Markdown.Renderer is
 
             From : constant VSS.Unicode.UTF8_Code_Unit_Offset :=
               (if Result.Is_Empty then 0
-               else Result.At_Last_Character.Last_UTF8_Offset);
+               else Result.At_Last_Character.Last_UTF8_Offset + 1);
 
          begin
             if not Text.Is_Empty then
@@ -719,5 +739,19 @@ package body Markdown.Renderer is
       Offset.Prev_Margin := Style.Bottom_Margin;
    end Show_Layout;
 
+   function To_Color (Text : VSS.Strings.Virtual_String) return Color is
+
+      function To_Number (Text : String) return Glib.Guint16 is
+         (Glib.Guint16'Value ("16#" & Text & "00#"));
+
+      Image : constant String :=
+        VSS.Strings.Conversions.To_UTF_8_String (Text);
+   begin
+      return Result : Color do
+         Result.Red := To_Number (Image (1 .. 2));
+         Result.Green := To_Number (Image (3 .. 4));
+         Result.Blue := To_Number (Image (5 .. 6));
+      end return;
+   end To_Color;
 
 end Markdown.Renderer;
