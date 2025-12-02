@@ -112,6 +112,13 @@ package body Markdown.Renderer is
       Style   : Markdown.Styles.Style;
       Offset  : in out Block_Offset);
 
+   use type VSS.Unicode.UTF8_Code_Unit_Offset;
+
+   function Next_Offset (Text : VSS.Strings.Virtual_String)
+     return VSS.Unicode.UTF8_Code_Unit_Offset is
+       (if Text.Is_Empty then 0
+        else Text.At_Last_Character.Last_UTF8_Offset + 1);
+
    -----------------
    -- Apply_Style --
    -----------------
@@ -191,8 +198,6 @@ package body Markdown.Renderer is
       Layout : Pango.Layout.Pango_Layout;
       Vector : Markdown.Inlines.Inline_Vector)
    is
-      use type VSS.Unicode.UTF8_Code_Unit_Offset;
-
       function Attr_Style_New
         (Style : Pango.Enums.Style) return Pango.Attributes.Pango_Attribute;
       pragma Import (C, Attr_Style_New, "pango_attr_style_new");
@@ -229,36 +234,30 @@ package body Markdown.Renderer is
 
                   when Markdown.Inlines.Code_Span       =>
                      declare
-                        To : VSS.Unicode.UTF8_Code_Unit_Offset;
-
                         From : constant VSS.Unicode.UTF8_Code_Unit_Offset :=
-                          Text.At_Last_Character.Last_UTF8_Offset;
+                          Next_Offset (Text);
 
                      begin
                         Text.Append (Item.Code_Span);
-                        To := Text.At_Last_Character.Last_UTF8_Offset;
 
                         Apply_Style
                           (List,
                            Self.Code_Span_Style,
                            From,
-                           To + 1);
+                           Next_Offset (Text));
                      end;
 
                   when Markdown.Inlines.Start_Emphasis  =>
                      declare
-                        To : VSS.Unicode.UTF8_Code_Unit_Offset;
-
                         From : constant VSS.Unicode.UTF8_Code_Unit_Offset :=
-                          Text.At_Last_Character.Last_UTF8_Offset + 1;
+                          Next_Offset (Text);
 
                         Attr : constant Pango.Attributes.Pango_Attribute :=
                           Attr_Style_New (Pango.Enums.Pango_Style_Italic);
                      begin
                         Markdown.Inlines.Inline_Vectors.Next (Cursor);
                         Walk (Cursor, Text, List);
-                        To := Text.At_Last_Character.Last_UTF8_Offset;
-                        Set_Span (Attr, From, To + 1);
+                        Set_Span (Attr, From, Next_Offset (Text));
                         List.Insert (Attr);
                      end;
 
@@ -267,10 +266,8 @@ package body Markdown.Renderer is
 
                   when Markdown.Inlines.Start_Strong    =>
                      declare
-                        To : VSS.Unicode.UTF8_Code_Unit_Offset;
-
                         From : constant VSS.Unicode.UTF8_Code_Unit_Offset :=
-                          Text.At_Last_Character.Last_UTF8_Offset + 1;
+                          Next_Offset (Text);
 
                         Attr : constant Pango.Attributes.Pango_Attribute :=
                           Pango.Attributes.Attr_Weight_New
@@ -278,8 +275,7 @@ package body Markdown.Renderer is
                      begin
                         Markdown.Inlines.Inline_Vectors.Next (Cursor);
                         Walk (Cursor, Text, List);
-                        To := Text.At_Last_Character.Last_UTF8_Offset;
-                        Set_Span (Attr, From, To + 1);
+                        Set_Span (Attr, From, Next_Offset (Text));
                         List.Insert (Attr);
                      end;
 
@@ -437,27 +433,19 @@ package body Markdown.Renderer is
             Style    : Markdown.Styles.Style;
             New_Line : Boolean)
          is
-            use type VSS.Unicode.UTF8_Code_Unit_Offset;
-
-            To : VSS.Unicode.UTF8_Code_Unit_Offset;
-
             From : constant VSS.Unicode.UTF8_Code_Unit_Offset :=
-              (if Result.Is_Empty then 0
-               else Result.At_Last_Character.Last_UTF8_Offset + 1);
+              Next_Offset (Result);
 
          begin
             if not Text.Is_Empty then
                Result.Append (Text);
-               To := Result.At_Last_Character.Last_UTF8_Offset;
-               Apply_Style (List, Style, From, To + 1);
+               Apply_Style (List, Style, From, Next_Offset (Result));
             end if;
 
             if New_Line then
                Result.Append (VSS.Characters.Latin.Line_Feed);
             end if;
          end Action;
-
-         use type VSS.Unicode.UTF8_Code_Unit_Offset;
 
          Layout : constant Pango.Layout.Pango_Layout :=
            Create_Layout (Context);
@@ -555,6 +543,9 @@ package body Markdown.Renderer is
            Create_Layout (Context);
 
          Text : Markdown.Inlines.Inline_Vector;
+
+         Offset_Y : constant Natural := Offset.Offset_Y +
+           Natural'Max (Style.Top_Margin, Offset.Prev_Margin);
       begin
          Text.Append
            (Markdown.Inlines.Inline'
@@ -563,12 +554,16 @@ package body Markdown.Renderer is
 
          Self.Assign_Markup (Style, Layout, Text);
 
+         Cairo.Save (Context);
+
          Cairo.Move_To
            (Context,
             Glib.Gdouble (Offset.Offset_X - Style.Left_Margin),
-            Glib.Gdouble (Offset.Offset_Y));
+            Glib.Gdouble (Offset_Y));
 
          Pango.Cairo.Show_Layout (Context, Layout);
+
+         Cairo.Restore (Context);
       end Render_Marker;
 
       function Marker_Image
@@ -671,8 +666,6 @@ package body Markdown.Renderer is
       From : VSS.Unicode.UTF8_Code_Unit_Offset;
       To   : VSS.Unicode.UTF8_Code_Unit_Offset)
    is
-      use type VSS.Unicode.UTF8_Code_Unit_Offset;
-
       function To_Guint
         (Value : VSS.Unicode.UTF8_Code_Unit_Offset) return Glib.Guint is
         (if Value = -1 then Glib.Guint'Last else Glib.Guint (Value));
