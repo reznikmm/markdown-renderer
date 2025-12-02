@@ -48,7 +48,7 @@ package body Markdown.Styles is
    is
       use type VSS.Strings.Character_Count;
    begin
-      pragma Assert (Value.Character_Length = 6);
+      pragma Assert (Value.Character_Length = 7);
       Self.Foreground := Value;
    end Set_Foreground_Color;
 

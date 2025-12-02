@@ -741,9 +741,9 @@ package body Markdown.Renderer is
         VSS.Strings.Conversions.To_UTF_8_String (Text);
    begin
       return Result : Color do
-         Result.Red := To_Number (Image (1 .. 2));
-         Result.Green := To_Number (Image (3 .. 4));
-         Result.Blue := To_Number (Image (5 .. 6));
+         Result.Red := To_Number (Image (2 .. 3));
+         Result.Green := To_Number (Image (4 .. 5));
+         Result.Blue := To_Number (Image (6 .. 7));
       end return;
    end To_Color;
 

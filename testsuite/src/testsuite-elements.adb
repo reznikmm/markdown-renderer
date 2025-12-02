@@ -327,35 +327,35 @@ package body Testsuite.Elements is
       declare
          Style : Markdown.Styles.Style;  --  Identifier
       begin
-         Style.Set_Foreground_Color ("1010E0");
+         Style.Set_Foreground_Color ("#1010E0");
          Renderer.Set_Token_Style (2, Style);
       end;
 
       declare
          Style : Markdown.Styles.Style;  --  Comment
       begin
-         Style.Set_Foreground_Color ("10E010");
+         Style.Set_Foreground_Color ("#10E010");
          Renderer.Set_Token_Style (3, Style);
       end;
 
       declare
          Style : Markdown.Styles.Style;  --  String
       begin
-         Style.Set_Foreground_Color ("E00000");
+         Style.Set_Foreground_Color ("#E00000");
          Renderer.Set_Token_Style (4, Style);
       end;
 
       declare
          Style : Markdown.Styles.Style;  --  Character
       begin
-         Style.Set_Foreground_Color ("E08000");
+         Style.Set_Foreground_Color ("#E08000");
          Renderer.Set_Token_Style (5, Style);
       end;
 
       declare
          Style : Markdown.Styles.Style;  --  Number
       begin
-         Style.Set_Foreground_Color ("0080E0");
+         Style.Set_Foreground_Color ("#0080E0");
          Renderer.Set_Token_Style (6, Style);
       end;
    end Set_Styles;
